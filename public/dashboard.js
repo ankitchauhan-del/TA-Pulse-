@@ -2074,6 +2074,16 @@ function sheetIconSvg(){
   return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M14 2v6h6" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8 13h8M8 17h5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>`;
 }
 
+// Turn a pasted link into a sourceSheets array. Accepts any URL; if it's not http(s),
+// returns an empty array (no link). Label shown on the pill is derived from a role title
+// or falls back to a generic "Sheet".
+function makeSheetEntry(link, roleTitle){
+  const url = (link || '').trim();
+  if (!/^https?:\/\//i.test(url)) return [];
+  const label = (roleTitle && roleTitle.trim()) ? (roleTitle.trim() + ' — Sheet') : 'Sheet';
+  return [{ label, path: url }];
+}
+
 function sheetIconHTML(r){
   const sheets = r.sourceSheets || [];
   if (!sheets.length) return '';
@@ -2153,6 +2163,7 @@ function roleGroupHTML(r){
         <div class="field-edit-item"><label>R1 count</label><input type="number" class="num-edit" min="0" data-field="r1Count" data-id="${r.id}" value="${r1}"></div>
         <div class="field-edit-item"><label>R2 count</label><input type="number" class="num-edit" min="0" data-field="r2Count" data-id="${r.id}" value="${r2}"></div>
         <div class="field-edit-item"><label>Target offer date</label><input type="text" class="date-edit" data-field="targetOfferDate" data-id="${r.id}" value="${escapeHtml(r.targetOfferDate||'')}" placeholder="e.g. 15th Aug 2026"></div>
+        <div class="field-edit-item" style="flex:1 1 100%;"><label>Google Sheet link</label><input type="text" class="date-edit" style="width:100%;" data-field="sheetLink" data-id="${r.id}" value="${escapeHtml((r.sourceSheets && r.sourceSheets[0] && r.sourceSheets[0].path) || '')}" placeholder="Paste a Google Sheet link (leave blank to remove)"></div>
       </div>
 
       <div class="donut-wrap">
@@ -2335,6 +2346,7 @@ function bindStaticEvents(){
     const title = document.getElementById('f-title').value.trim();
     if (!title) return;
     const note = document.getElementById('f-note').value.trim();
+    const sheetLink = document.getElementById('f-sheet').value.trim();
     const role = {
       id: uid(),
       title,
@@ -2346,6 +2358,7 @@ function bindStaticEvents(){
       r2Count: 0, r2Names: [],
       targetOfferDate: document.getElementById('f-target-date').value.trim() || null,
       needsAttention: false,
+      sourceSheets: makeSheetEntry(sheetLink, title),
       log: note ? [{ date: todayLabel(), text: note }] : [],
     };
     state.roles.unshift(role);
@@ -2472,8 +2485,37 @@ function handleRoleListInput(e){
   } else if (field === 'targetOfferDate'){
     role.targetOfferDate = el.value.trim() || null;
     updateDateBadge(role);
+  } else if (field === 'sheetLink'){
+    role.sourceSheets = makeSheetEntry(el.value, role.title);
+    updateSheetLinkViews(role);
   }
   scheduleSaveRoles();
+}
+
+// Refresh the little icon in the row + the pill in the detail panel after a link edit,
+// without rebuilding the whole list (which would collapse the open row mid-typing).
+function updateSheetLinkViews(role){
+  const group = document.querySelector(`.role-group[data-id="${role.id}"]`);
+  if (!group) return;
+  const titleWrap = group.querySelector('.row-title');
+  if (titleWrap){
+    const oldIcon = titleWrap.querySelector('.sheet-link');
+    if (oldIcon) oldIcon.remove();
+    const iconHtml = sheetIconHTML(role);
+    if (iconHtml) titleWrap.insertAdjacentHTML('beforeend', iconHtml);
+  }
+  const detail = group.querySelector('.role-detail');
+  if (detail){
+    const oldRow = detail.querySelector('.sheet-links-row');
+    const newRowHtml = sheetLinksRowHTML(role);
+    if (oldRow){
+      if (newRowHtml){ oldRow.outerHTML = newRowHtml; }
+      else { oldRow.remove(); }
+    } else if (newRowHtml){
+      const stats = detail.querySelector('.detail-stats-row');
+      if (stats) stats.insertAdjacentHTML('afterend', newRowHtml);
+    }
+  }
 }
 
 function handleRoleListChange(e){

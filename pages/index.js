@@ -147,6 +147,10 @@ const BODY_HTML = `
         <input type="number" id="f-sourced" min="0" value="0">
       </div>
       <div class="form-row">
+        <label>Google Sheet link (optional)</label>
+        <input type="text" id="f-sheet" placeholder="Paste the Google Sheet share link">
+      </div>
+      <div class="form-row">
         <label>First note (optional)</label>
         <textarea id="f-note" placeholder="e.g. Kicked off sourcing, JD approved…"></textarea>
       </div>
