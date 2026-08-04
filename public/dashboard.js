@@ -1833,6 +1833,10 @@ function startPolling(){
     const isTyping = active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA' || active.tagName === 'SELECT');
     if (isTyping) return;
     if (document.getElementById('modal-overlay').classList.contains('is-open')) return;
+    // Don't let a background refresh overwrite an in-progress drag, or clobber the
+    // order while someone is actively editing (their unsaved reorder would vanish).
+    if (document.querySelector('.role-group.is-dragging')) return;
+    if (state.mode === 'edit') return;
     const rolesRes = await apiGet(API_ROLES);
     if (rolesRes.found) state.roles = rolesRes.value || [];
     const narrRes = await apiGet(API_NARRATIVE);
@@ -2012,6 +2016,122 @@ function renderRoleList(){
   const head = `<div class="role-table-head"><span></span><span>Role</span><span>Status</span><span>Pipeline</span><span>Target date</span></div>`;
   container.innerHTML = head + list.map(roleGroupHTML).join('');
   applyModeClassesToInputs();
+  setupDragReorder();
+}
+
+// ---- Drag-to-reorder ----
+let dragState = { id: null };
+
+function reorderingAllowed(){
+  // Only when editing, and only when the full unfiltered list is shown (otherwise
+  // "move up" is ambiguous against a hidden subset).
+  const unfiltered = state.filterStatus === 'All' && !state.specialFilter && !state.searchQuery.trim();
+  return state.mode === 'edit' && unfiltered;
+}
+
+function setupDragReorder(){
+  const container = document.getElementById('role-list');
+  if (!container) return;
+  const groups = container.querySelectorAll('.role-group');
+  const canDrag = reorderingAllowed();
+
+  groups.forEach(group => {
+    const handle = group.querySelector('.drag-handle');
+    // The whole group is the draggable unit, but only starting from the handle.
+    group.setAttribute('draggable', canDrag ? 'true' : 'false');
+
+    if (!canDrag) return;
+
+    group.addEventListener('dragstart', (e) => {
+      // Only allow the drag if it began on the handle.
+      if (!e.target.closest('.drag-handle')) { e.preventDefault(); return; }
+      group.classList.remove('is-open'); // drag the compact row, not the expanded panel
+      dragState.id = group.dataset.id;
+      group.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', group.dataset.id); } catch(_){}
+    });
+
+    group.addEventListener('dragend', () => {
+      group.classList.remove('is-dragging');
+      container.querySelectorAll('.drag-over-before,.drag-over-after').forEach(el =>
+        el.classList.remove('drag-over-before','drag-over-after'));
+      dragState.id = null;
+    });
+
+    group.addEventListener('dragover', (e) => {
+      if (!dragState.id || dragState.id === group.dataset.id) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      const rect = group.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      group.classList.toggle('drag-over-before', before);
+      group.classList.toggle('drag-over-after', !before);
+    });
+
+    group.addEventListener('dragleave', () => {
+      group.classList.remove('drag-over-before','drag-over-after');
+    });
+
+    group.addEventListener('drop', (e) => {
+      e.preventDefault();
+      const draggedId = dragState.id;
+      const targetId = group.dataset.id;
+      if (!draggedId || draggedId === targetId) return;
+      const rect = group.getBoundingClientRect();
+      const before = (e.clientY - rect.top) < rect.height / 2;
+      commitReorder(draggedId, targetId, before);
+    });
+  });
+
+  // Show/hide the reorder hint
+  updateReorderHint(canDrag);
+}
+
+function commitReorder(draggedId, targetId, before){
+  const roles = state.roles;
+  const from = roles.findIndex(r => r.id === draggedId);
+  let to = roles.findIndex(r => r.id === targetId);
+  if (from < 0 || to < 0) return;
+
+  const [moved] = roles.splice(from, 1);
+  // Recompute target index after removal
+  to = roles.findIndex(r => r.id === targetId);
+  const insertAt = before ? to : to + 1;
+  roles.splice(insertAt, 0, moved);
+
+  scheduleSaveRoles();
+  renderRoleList();
+}
+
+function updateReorderHint(canDrag){
+  let hint = document.getElementById('reorder-hint');
+  const sectionHead = document.querySelector('.section-head');
+  if (!sectionHead) return;
+  const filteredButEditing = state.mode === 'edit' && !canDrag;
+
+  if (canDrag){
+    if (!hint){
+      hint = document.createElement('div');
+      hint.id = 'reorder-hint';
+      hint.className = 'reorder-hint';
+      hint.textContent = 'Drag the ⠿ handle to reorder roles';
+      sectionHead.insertAdjacentElement('afterend', hint);
+    }
+    hint.textContent = 'Drag the ⠿ handle to reorder roles';
+    hint.style.display = 'block';
+  } else if (filteredButEditing){
+    if (!hint){
+      hint = document.createElement('div');
+      hint.id = 'reorder-hint';
+      hint.className = 'reorder-hint';
+      sectionHead.insertAdjacentElement('afterend', hint);
+    }
+    hint.textContent = 'Clear the search/filter to drag roles into a new order';
+    hint.style.display = 'block';
+  } else if (hint){
+    hint.style.display = 'none';
+  }
 }
 
 // ---- Pipeline breakdown + donut chart rendering ----
@@ -2121,6 +2241,9 @@ function roleGroupHTML(r){
   return `
   <div class="role-group ${r.needsAttention ? 'is-flagged':''}" data-id="${r.id}">
     <div class="role-row">
+      <span class="drag-handle edit-only" title="Drag to reorder" aria-label="Drag to reorder">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="8" cy="6" r="1.6"/><circle cx="8" cy="12" r="1.6"/><circle cx="8" cy="18" r="1.6"/><circle cx="16" cy="6" r="1.6"/><circle cx="16" cy="12" r="1.6"/><circle cx="16" cy="18" r="1.6"/></svg>
+      </span>
       <svg class="chevron" width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <div class="row-title">
         <span class="flag-dot" title="Needs attention"></span>
@@ -2273,6 +2396,7 @@ function bindStaticEvents(){
     document.getElementById('mode-label').textContent = state.mode === 'edit' ? 'Editing' : 'Viewing';
     applyModeToNarrative();
     applyModeClassesToInputs();
+    renderRoleList();
   });
 
   document.getElementById('search-input').addEventListener('input', (e) => {
