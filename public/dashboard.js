@@ -2019,8 +2019,7 @@ function renderRoleList(){
   setupDragReorder();
 }
 
-// ---- Drag-to-reorder ----
-let dragState = { id: null };
+// ---- Drag-to-reorder (pointer-based) ----
 
 function reorderingAllowed(){
   // Only when editing, and only when the full unfiltered list is shown (otherwise
@@ -2032,60 +2031,98 @@ function reorderingAllowed(){
 function setupDragReorder(){
   const container = document.getElementById('role-list');
   if (!container) return;
-  const groups = container.querySelectorAll('.role-group');
   const canDrag = reorderingAllowed();
 
-  groups.forEach(group => {
+  container.querySelectorAll('.role-group').forEach(group => {
     const handle = group.querySelector('.drag-handle');
-    // The whole group is the draggable unit, but only starting from the handle.
-    group.setAttribute('draggable', canDrag ? 'true' : 'false');
-
-    if (!canDrag) return;
-
-    group.addEventListener('dragstart', (e) => {
-      // Only allow the drag if it began on the handle.
-      if (!e.target.closest('.drag-handle')) { e.preventDefault(); return; }
-      group.classList.remove('is-open'); // drag the compact row, not the expanded panel
-      dragState.id = group.dataset.id;
-      group.classList.add('is-dragging');
-      e.dataTransfer.effectAllowed = 'move';
-      try { e.dataTransfer.setData('text/plain', group.dataset.id); } catch(_){}
-    });
-
-    group.addEventListener('dragend', () => {
-      group.classList.remove('is-dragging');
-      container.querySelectorAll('.drag-over-before,.drag-over-after').forEach(el =>
-        el.classList.remove('drag-over-before','drag-over-after'));
-      dragState.id = null;
-    });
-
-    group.addEventListener('dragover', (e) => {
-      if (!dragState.id || dragState.id === group.dataset.id) return;
-      e.preventDefault();
-      e.dataTransfer.dropEffect = 'move';
-      const rect = group.getBoundingClientRect();
-      const before = (e.clientY - rect.top) < rect.height / 2;
-      group.classList.toggle('drag-over-before', before);
-      group.classList.toggle('drag-over-after', !before);
-    });
-
-    group.addEventListener('dragleave', () => {
-      group.classList.remove('drag-over-before','drag-over-after');
-    });
-
-    group.addEventListener('drop', (e) => {
-      e.preventDefault();
-      const draggedId = dragState.id;
-      const targetId = group.dataset.id;
-      if (!draggedId || draggedId === targetId) return;
-      const rect = group.getBoundingClientRect();
-      const before = (e.clientY - rect.top) < rect.height / 2;
-      commitReorder(draggedId, targetId, before);
-    });
+    if (!handle) return;
+    if (!canDrag){ handle.onpointerdown = null; return; }
+    handle.onpointerdown = (e) => startPointerDrag(e, group, container);
   });
 
-  // Show/hide the reorder hint
   updateReorderHint(canDrag);
+}
+
+function startPointerDrag(e, group, container){
+  e.preventDefault();
+  group.classList.remove('is-open'); // drag the compact row, not the expanded panel
+
+  const draggedId = group.dataset.id;
+  const startY = e.clientY;
+  let moved = false;
+  dbgDrag('drag start on ' + (group.querySelector('.role-title-view')?.textContent || draggedId));
+
+  group.classList.add('is-dragging');
+
+  function onMove(ev){
+    if (!moved && Math.abs(ev.clientY - startY) < 4) return; // ignore tiny jitters
+    moved = true;
+    const overGroup = groupUnderPoint(container, ev.clientX, ev.clientY, draggedId);
+    clearDropMarkers();
+    if (overGroup){
+      const rect = overGroup.getBoundingClientRect();
+      const before = (ev.clientY - rect.top) < rect.height / 2;
+      overGroup.classList.add(before ? 'drag-over-before' : 'drag-over-after');
+      dbgDrag('over ' + (overGroup.querySelector('.role-title-view')?.textContent || overGroup.dataset.id) + (before ? ' (before)' : ' (after)'));
+    } else {
+      dbgDrag('moving… (not over a target row)');
+    }
+  }
+
+  function onUp(ev){
+    document.removeEventListener('pointermove', onMove);
+    document.removeEventListener('pointerup', onUp);
+    group.classList.remove('is-dragging');
+
+    const overGroup = groupUnderPoint(container, ev.clientX, ev.clientY, draggedId);
+    clearDropMarkers();
+    if (moved && overGroup){
+      const rect = overGroup.getBoundingClientRect();
+      const before = (ev.clientY - rect.top) < rect.height / 2;
+      dbgDrag('DROP → ' + (before ? 'before ' : 'after ') + (overGroup.querySelector('.role-title-view')?.textContent || overGroup.dataset.id));
+      commitReorder(draggedId, overGroup.dataset.id, before);
+    } else {
+      dbgDrag('released with no valid target (moved=' + moved + ')');
+    }
+  }
+
+  document.addEventListener('pointermove', onMove);
+  document.addEventListener('pointerup', onUp);
+}
+
+// Temporary on-screen debug readout for diagnosing drag on the live site.
+function dbgDrag(msg){
+  if (!window.__DRAG_DEBUG) return;
+  let el = document.getElementById('drag-debug');
+  if (!el){
+    el = document.createElement('div');
+    el.id = 'drag-debug';
+    el.style.cssText = 'position:fixed;bottom:12px;left:12px;z-index:9999;background:#181530;color:#B9F5D0;font:12px/1.4 monospace;padding:8px 12px;border-radius:8px;max-width:60vw;box-shadow:0 8px 24px rgba(0,0,0,.3);';
+    document.body.appendChild(el);
+  }
+  el.textContent = 'drag: ' + msg;
+}
+
+// Find which role-group sits under the given point, ignoring the one being dragged.
+function groupUnderPoint(container, x, y, draggedId){
+  const els = document.elementsFromPoint(x, y);
+  for (const el of els){
+    const g = el.closest && el.closest('.role-group');
+    if (g && container.contains(g) && g.dataset.id !== draggedId) return g;
+  }
+  // Fallback: if pointer is past the last row, treat the last group as target
+  const groups = [...container.querySelectorAll('.role-group')].filter(g => g.dataset.id !== draggedId);
+  if (!groups.length) return null;
+  const lastRect = groups[groups.length-1].getBoundingClientRect();
+  if (y > lastRect.bottom) return groups[groups.length-1];
+  const firstRect = groups[0].getBoundingClientRect();
+  if (y < firstRect.top) return groups[0];
+  return null;
+}
+
+function clearDropMarkers(){
+  document.querySelectorAll('.drag-over-before,.drag-over-after').forEach(el =>
+    el.classList.remove('drag-over-before','drag-over-after'));
 }
 
 function commitReorder(draggedId, targetId, before){
