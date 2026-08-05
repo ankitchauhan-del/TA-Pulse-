@@ -268,6 +268,7 @@
     position:absolute;left:-2px;top:50%;transform:translateY(-50%);
     width:22px;height:100%;max-height:52px;display:flex;align-items:center;justify-content:center;
     color:var(--ink-faint);cursor:grab;border-radius:6px;z-index:3;
+    touch-action:none;user-select:none;-webkit-user-select:none;
   }
   .drag-handle:active{cursor:grabbing;}
   .drag-handle:hover{color:var(--signal-dark);background:var(--signal-tint);}
