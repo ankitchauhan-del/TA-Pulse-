@@ -21,7 +21,7 @@ const BODY_HTML = `
   <header class="hero">
     <div class="container">
       <p class="eyebrow">VerbaFlo.AI · Talent Acquisition</p>
-      <h1>The Hiring Pulse</h1>
+      <h1>VerbaPulse</h1>
       <div class="hero-meta">
         <span class="meta-item">Week of
           <input type="text" class="hero-field e-field" id="week-label-edit" placeholder="e.g. Jul 20–24, 2026">

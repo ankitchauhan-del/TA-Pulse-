@@ -43,7 +43,7 @@ export default function Login() {
     <div className="login-screen">
       <div className="login-card">
         <p className="login-eyebrow">VerbaFlo.AI · Talent Acquisition</p>
-        <h1>The Hiring Pulse</h1>
+        <h1>VerbaPulse</h1>
         <p>Enter the access password to continue.</p>
         <form onSubmit={submit}>
           <input
