@@ -19,22 +19,23 @@ const BODY_HTML = `
 <div id="app" style="display:none;">
 
   <header class="hero">
-    <div class="container">
-      <p class="eyebrow">VerbaFlo.AI · Talent Acquisition</p>
-      <h1>VerbaPulse</h1>
-      <div class="hero-meta">
-        <span class="meta-item">Week of
-          <input type="text" class="hero-field e-field" id="week-label-edit" placeholder="e.g. Jul 20–24, 2026">
-          <strong class="v-field" id="week-label-view">—</strong>
-        </span>
-        <span class="meta-item">Prepared by
-          <input type="text" class="hero-field e-field" id="prepared-by-edit" placeholder="your name">
-          <strong class="v-field" id="prepared-by-view">—</strong>
-        </span>
-        <span class="meta-item" id="last-updated-wrap">Last updated <strong id="last-updated-view">—</strong></span>
+    <div class="container hero-grid">
+      <div class="hero-left">
+        <p class="eyebrow">VerbaFlo.AI · Talent Acquisition</p>
+        <h1>VerbaPulse</h1>
+        <div class="hero-meta">
+          <span class="meta-item">Week of
+            <input type="text" class="hero-field e-field" id="week-label-edit" placeholder="e.g. Jul 20–24, 2026">
+            <strong class="v-field" id="week-label-view">—</strong>
+          </span>
+          <span class="meta-item">Prepared by
+            <input type="text" class="hero-field e-field" id="prepared-by-edit" placeholder="your name">
+            <strong class="v-field" id="prepared-by-view">—</strong>
+          </span>
+          <span class="meta-item" id="last-updated-wrap">Updated <strong id="last-updated-view">—</strong></span>
+        </div>
       </div>
-      <div class="waveform" id="waveform"></div>
-      <div class="waveform-cap" id="waveform-cap"></div>
+      <div class="offers-panel" id="offers-panel"></div>
     </div>
   </header>
 
