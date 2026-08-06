@@ -1960,13 +1960,20 @@ function renderWaveform(){
   }
 
   const rows = offerRoles.map(r => {
-    // Find the most relevant candidate: a signed one first, else one with an offer out.
     let cand = null, signed = false;
-    const roster = Array.isArray(r.roster) ? r.roster : [];
-    const signedC = roster.find(c => c && c.offer && /sign/i.test(String(c.stage||'')));
-    const offerC = roster.find(c => c && c.offer);
-    if (signedC){ cand = signedC.name; signed = true; }
-    else if (offerC){ cand = offerC.name; signed = false; }
+
+    // Priority 1: the dedicated fields you fill in the role's edit view.
+    if (r.offerCandidate && String(r.offerCandidate).trim()){
+      cand = String(r.offerCandidate).trim();
+      signed = !!r.offerSigned;
+    } else {
+      // Priority 2 (fallback): infer from the roster snapshot if it exists.
+      const roster = Array.isArray(r.roster) ? r.roster : [];
+      const signedC = roster.find(c => c && c.offer && /sign/i.test(String(c.stage||'')));
+      const offerC = roster.find(c => c && c.offer);
+      if (signedC){ cand = signedC.name; signed = true; }
+      else if (offerC){ cand = offerC.name; signed = false; }
+    }
 
     const candLine = cand ? `<span class="ocand">${escapeHtml(cand)}</span>` : `<span class="ocand ocand-muted">Candidate TBD</span>`;
     const badge = signed
@@ -2344,6 +2351,8 @@ function roleGroupHTML(r){
         <div class="field-edit-item"><label>R1 count</label><input type="number" class="num-edit" min="0" data-field="r1Count" data-id="${r.id}" value="${r1}"></div>
         <div class="field-edit-item"><label>R2 count</label><input type="number" class="num-edit" min="0" data-field="r2Count" data-id="${r.id}" value="${r2}"></div>
         <div class="field-edit-item"><label>Target offer date</label><input type="text" class="date-edit" data-field="targetOfferDate" data-id="${r.id}" value="${escapeHtml(r.targetOfferDate||'')}" placeholder="e.g. 15th Aug 2026"></div>
+        <div class="field-edit-item"><label>Offer candidate <span class="field-hint">(shows in “Offers in flight”)</span></label><input type="text" class="date-edit" data-field="offerCandidate" data-id="${r.id}" value="${escapeHtml(r.offerCandidate||'')}" placeholder="Name of candidate offered"></div>
+        <div class="field-edit-item field-check"><label>Offer signed?</label><label class="check-wrap"><input type="checkbox" data-field="offerSigned" data-id="${r.id}" ${r.offerSigned?'checked':''}> <span>Signed &amp; accepted</span></label></div>
         <div class="field-edit-item" style="flex:1 1 100%;"><label>Google Sheet link</label><input type="text" class="date-edit" style="width:100%;" data-field="sheetLink" data-id="${r.id}" value="${escapeHtml((r.sourceSheets && r.sourceSheets[0] && r.sourceSheets[0].path) || '')}" placeholder="Paste a Google Sheet link (leave blank to remove)"></div>
       </div>
 
@@ -2670,6 +2679,9 @@ function handleRoleListInput(e){
   } else if (field === 'sheetLink'){
     role.sourceSheets = makeSheetEntry(el.value, role.title);
     updateSheetLinkViews(role);
+  } else if (field === 'offerCandidate'){
+    role.offerCandidate = el.value;
+    renderWaveform(); // refreshes the Offers in flight panel
   }
   scheduleSaveRoles();
 }
@@ -2709,7 +2721,15 @@ function handleRoleListChange(e){
     updateStatusView(role);
     updateDateBadge(role);
     renderKPIs();
+    renderWaveform(); // status change may add/remove this role from Offers in flight
     scheduleSaveRoles();
+  } else if (el.dataset.field === 'offerSigned' && el.type === 'checkbox'){
+    const role = findRole(el.dataset.id);
+    if (role){
+      role.offerSigned = el.checked;
+      renderWaveform();
+      scheduleSaveRoles();
+    }
   }
 }
 
