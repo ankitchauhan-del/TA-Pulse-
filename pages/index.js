@@ -16,6 +16,16 @@ const BODY_HTML = `
   <div>Loading pulse…</div>
 </div>
 
+<div class="aurora-bg" aria-hidden="true">
+  <div class="aurora-blob ab1"></div>
+  <div class="aurora-blob ab2"></div>
+  <div class="aurora-blob ab3"></div>
+  <div class="aurora-blob ab4"></div>
+  <div class="aurora-sheen"></div>
+  <div class="aurora-grain"></div>
+  <div class="aurora-hairline"></div>
+</div>
+
 <div id="app" style="display:none;">
 
   <header class="hero">

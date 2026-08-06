@@ -41,6 +41,15 @@ export default function Login() {
 
   return (
     <div className="login-screen">
+      <div className="aurora-bg" aria-hidden="true">
+        <div className="aurora-blob ab1"></div>
+        <div className="aurora-blob ab2"></div>
+        <div className="aurora-blob ab3"></div>
+        <div className="aurora-blob ab4"></div>
+        <div className="aurora-sheen"></div>
+        <div className="aurora-grain"></div>
+        <div className="aurora-hairline"></div>
+      </div>
       <div className="login-card">
         <p className="login-eyebrow">VerbaFlo.AI · Talent Acquisition</p>
         <h1>VerbaPulse</h1>
