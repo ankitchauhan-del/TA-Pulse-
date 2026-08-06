@@ -1947,17 +1947,38 @@ function clearAllFilters(){
 
 // ===================== Waveform =====================
 function renderWaveform(){
-  const el = document.getElementById('waveform');
-  const cap = document.getElementById('waveform-cap');
-  const roles = state.roles;
-  if (!roles.length){ el.innerHTML = ''; cap.innerHTML = ''; return; }
-  const max = Math.max(1, ...roles.map(r => Number(r.candidatesShared)||0));
-  el.innerHTML = roles.map((r,i) => {
-    const v = Number(r.candidatesShared)||0;
-    const pct = Math.max(6, Math.round((v/max)*100));
-    return `<div class="wf-bar" style="height:${pct}%; animation-delay:${i*0.03}s" title="${escapeHtml(r.title)} — ${v} submitted"></div>`;
+  // Repurposed: renders the "Offers in flight" panel in the hero.
+  const el = document.getElementById('offers-panel');
+  if (!el) return;
+  const roles = state.roles || [];
+  const offerRoles = roles.filter(r => r.status === 'Offer stage');
+
+  if (!offerRoles.length){
+    el.innerHTML = `<div class="offers-head"><span class="gh-dot"></span>Offers in flight · 0</div>`
+      + `<div class="offers-empty">No live offers right now.</div>`;
+    return;
+  }
+
+  const rows = offerRoles.map(r => {
+    // Find the most relevant candidate: a signed one first, else one with an offer out.
+    let cand = null, signed = false;
+    const roster = Array.isArray(r.roster) ? r.roster : [];
+    const signedC = roster.find(c => c && c.offer && /sign/i.test(String(c.stage||'')));
+    const offerC = roster.find(c => c && c.offer);
+    if (signedC){ cand = signedC.name; signed = true; }
+    else if (offerC){ cand = offerC.name; signed = false; }
+
+    const candLine = cand ? `<span class="ocand">${escapeHtml(cand)}</span>` : `<span class="ocand ocand-muted">Candidate TBD</span>`;
+    const badge = signed
+      ? `<span class="obadge signed">Signed</span>`
+      : `<span class="obadge">Offer out</span>`;
+    return `<div class="orow">
+      <div class="oinfo"><span class="oname">${escapeHtml(r.title)}</span>${candLine}</div>
+      ${badge}
+    </div>`;
   }).join('');
-  cap.innerHTML = `<span>Submission volume by role</span><span>${roles.length} roles tracked</span>`;
+
+  el.innerHTML = `<div class="offers-head"><span class="gh-dot"></span>Offers in flight · ${offerRoles.length}</div>${rows}`;
 }
 
 // ===================== Narrative =====================
