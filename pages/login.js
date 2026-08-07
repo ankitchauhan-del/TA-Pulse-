@@ -46,6 +46,8 @@ export default function Login() {
         <div className="aurora-blob ab2"></div>
         <div className="aurora-blob ab3"></div>
         <div className="aurora-blob ab4"></div>
+        <div className="aurora-blob ab5"></div>
+        <div className="aurora-blob ab6"></div>
         <div className="aurora-sheen"></div>
         <div className="aurora-grain"></div>
         <div className="aurora-hairline"></div>
