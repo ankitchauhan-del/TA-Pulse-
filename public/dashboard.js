@@ -1976,11 +1976,14 @@ function renderWaveform(){
     }
 
     const candLine = cand ? `<span class="ocand">${escapeHtml(cand)}</span>` : `<span class="ocand ocand-muted">Candidate TBD</span>`;
+    const joinDate = r.joiningDate && String(r.joiningDate).trim()
+      ? `<span class="ojoin">Joins ${escapeHtml(String(r.joiningDate).trim())}</span>`
+      : '';
     const badge = signed
       ? `<span class="obadge signed">Signed</span>`
       : `<span class="obadge">Offer out</span>`;
     return `<div class="orow">
-      <div class="oinfo"><span class="oname">${escapeHtml(r.title)}</span>${candLine}</div>
+      <div class="oinfo"><span class="oname">${escapeHtml(r.title)}</span>${candLine}${joinDate}</div>
       ${badge}
     </div>`;
   }).join('');
@@ -2352,6 +2355,7 @@ function roleGroupHTML(r){
         <div class="field-edit-item"><label>R2 count</label><input type="number" class="num-edit" min="0" data-field="r2Count" data-id="${r.id}" value="${r2}"></div>
         <div class="field-edit-item"><label>Target offer date</label><input type="text" class="date-edit" data-field="targetOfferDate" data-id="${r.id}" value="${escapeHtml(r.targetOfferDate||'')}" placeholder="e.g. 15th Aug 2026"></div>
         <div class="field-edit-item"><label>Offer candidate <span class="field-hint">(shows in “Offers in flight”)</span></label><input type="text" class="date-edit" data-field="offerCandidate" data-id="${r.id}" value="${escapeHtml(r.offerCandidate||'')}" placeholder="Name of candidate offered"></div>
+        <div class="field-edit-item"><label>Joining date <span class="field-hint">(shows in “Offers in flight”)</span></label><input type="text" class="date-edit" data-field="joiningDate" data-id="${r.id}" value="${escapeHtml(r.joiningDate||'')}" placeholder="e.g. 1st Sep 2026"></div>
         <div class="field-edit-item field-check"><label>Offer signed?</label><label class="check-wrap"><input type="checkbox" data-field="offerSigned" data-id="${r.id}" ${r.offerSigned?'checked':''}> <span>Signed &amp; accepted</span></label></div>
         <div class="field-edit-item" style="flex:1 1 100%;"><label>Google Sheet link</label><input type="text" class="date-edit" style="width:100%;" data-field="sheetLink" data-id="${r.id}" value="${escapeHtml((r.sourceSheets && r.sourceSheets[0] && r.sourceSheets[0].path) || '')}" placeholder="Paste a Google Sheet link (leave blank to remove)"></div>
       </div>
@@ -2682,6 +2686,9 @@ function handleRoleListInput(e){
   } else if (field === 'offerCandidate'){
     role.offerCandidate = el.value;
     renderWaveform(); // refreshes the Offers in flight panel
+  } else if (field === 'joiningDate'){
+    role.joiningDate = el.value;
+    renderWaveform();
   }
   scheduleSaveRoles();
 }
