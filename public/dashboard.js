@@ -1676,14 +1676,19 @@ function timeAgoLabel(iso){
   return then_d.toLocaleDateString('en-US', { day:'numeric', month:'short', hour:'numeric', minute:'2-digit' });
 }
 
+function ordinal(n){
+  const s = ['th','st','nd','rd'], v = n % 100;
+  return n + (s[(v-20)%10] || s[v] || s[0]);
+}
 function defaultWeekLabel(){
   const now = new Date();
   const day = now.getDay(); // 0 sun .. 6 sat
   const diffToMonday = (day === 0 ? -6 : 1 - day);
   const monday = new Date(now); monday.setDate(now.getDate() + diffToMonday);
   const friday = new Date(monday); friday.setDate(monday.getDate() + 4);
-  const fmt = (d) => d.toLocaleDateString('en-US', { day:'numeric', month:'short' });
-  return fmt(monday) + '–' + fmt(friday) + ', ' + friday.getFullYear();
+  const mon = (d) => d.toLocaleDateString('en-US', { month:'short' });
+  // e.g. "10th Aug to 14th Aug" (adds year only if the week spans two different months/years is uncommon; keep it clean)
+  return `${ordinal(monday.getDate())} ${mon(monday)} to ${ordinal(friday.getDate())} ${mon(friday)}`;
 }
 
 function parseNames(raw){
@@ -1825,7 +1830,7 @@ async function init(){
   bindStaticEvents();
   // Let the entrance animations (donut draw) play once, then drop the flag
   // so later re-renders (filters, edits, polling) don't re-animate.
-  setTimeout(() => document.body.classList.remove('first-load'), 1100);
+  setTimeout(() => document.body.classList.remove('first-load'), 1600);
   if (apiAvailable) startPolling();
   else setSyncStatus('unavailable');
 }
@@ -2362,6 +2367,7 @@ function roleGroupHTML(r){
     </div>
 
     <div class="role-detail">
+      <div class="role-detail-inner">
       <div class="detail-stats-row">
         <span><strong data-view="totalApprovedReqs">${r.totalApprovedReqs ?? 0}</strong> approved req${(r.totalApprovedReqs===1)?'':'s'}</span>
         <span><strong data-view="openPositions">${r.openPositions ?? 0}</strong> open position${(r.openPositions===1)?'':'s'}</span>
@@ -2406,6 +2412,7 @@ function roleGroupHTML(r){
 
       <div class="card-foot edit-only is-row">
         <button class="btn btn-danger" data-action="delete-role" data-id="${r.id}">Delete role</button>
+      </div>
       </div>
     </div>
   </div>`;
