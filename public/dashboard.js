@@ -1816,12 +1816,16 @@ async function init(){
   document.getElementById('loading').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 
+  document.body.classList.add('first-load');
   renderNarrativeFields();
   renderLastUpdated();
   renderKPIs();
   renderWaveform();
   renderRoleList();
   bindStaticEvents();
+  // Let the entrance animations (donut draw) play once, then drop the flag
+  // so later re-renders (filters, edits, polling) don't re-animate.
+  setTimeout(() => document.body.classList.remove('first-load'), 1100);
   if (apiAvailable) startPolling();
   else setSyncStatus('unavailable');
 }
@@ -1876,6 +1880,28 @@ function renderKPIs(){
     <div class="kpi-card ${k.attention > 0 ? 'is-attention' : ''}" data-kpi="attention" tabindex="0"><div class="kpi-num">${k.attention}</div><div class="kpi-label">Needs attention</div></div>
   `;
   syncKpiActiveState();
+
+  // Count-up animation — only the first time the KPIs render this session.
+  if (!window.__kpiCountedUp){
+    window.__kpiCountedUp = true;
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (!reduce){
+      grid.querySelectorAll('.kpi-num').forEach(el => {
+        const target = parseInt(el.textContent, 10);
+        if (isNaN(target) || target === 0) return;
+        const dur = 900, start = performance.now();
+        el.textContent = '0';
+        function step(now){
+          const p = Math.min(1, (now - start) / dur);
+          const eased = 1 - Math.pow(1 - p, 3); // easeOutCubic
+          el.textContent = Math.round(eased * target).toString();
+          if (p < 1) requestAnimationFrame(step);
+          else el.textContent = target.toString();
+        }
+        requestAnimationFrame(step);
+      });
+    }
+  }
 }
 
 function syncKpiActiveState(){
