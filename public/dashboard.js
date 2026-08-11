@@ -1827,6 +1827,7 @@ async function init(){
   renderKPIs();
   renderWaveform();
   renderRoleList();
+  renderHeroParticles();
   bindStaticEvents();
   // Let the entrance animations (donut draw) play once, then drop the flag
   // so later re-renders (filters, edits, polling) don't re-animate.
@@ -2003,6 +2004,52 @@ function clearAllFilters(){
 }
 
 // ===================== Waveform =====================
+function renderHeroParticles(){
+  const field = document.getElementById('hero-particles');
+  if (!field || field.childElementCount) return; // build once
+  const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const colors = [
+    ['#9B8CFF','rgba(155,140,255,0.9)'],
+    ['#5CC6FF','rgba(92,198,255,0.9)'],
+    ['#25D9A0','rgba(37,217,160,0.85)'],
+    ['#C9C2FF','rgba(201,194,255,0.95)']
+  ];
+  const rnd = (a,b) => a + Math.random()*(b-a);
+  const frag = document.createDocumentFragment();
+  // large blurred bokeh orbs for depth
+  const bokehCount = reduce ? 5 : 9;
+  for (let i=0;i<bokehCount;i++){
+    const b = document.createElement('span');
+    b.className = 'hp-bokeh';
+    const c = colors[Math.floor(Math.random()*colors.length)];
+    const s = rnd(18,58);
+    b.style.width = b.style.height = s+'px';
+    b.style.background = 'radial-gradient(circle,'+c[0]+',transparent 70%)';
+    b.style.left = rnd(0,100)+'%';
+    b.style.top = rnd(0,100)+'%';
+    b.style.animationDuration = rnd(9,17)+'s';
+    b.style.animationDelay = (-rnd(0,12))+'s';
+    frag.appendChild(b);
+  }
+  // crisp glowing sparks
+  const sparkCount = reduce ? 20 : 46;
+  for (let i=0;i<sparkCount;i++){
+    const p = document.createElement('span');
+    p.className = 'hp-spark';
+    const c = colors[Math.floor(Math.random()*colors.length)];
+    const s = rnd(1.5,5);
+    p.style.width = p.style.height = s+'px';
+    p.style.background = c[0];
+    p.style.boxShadow = '0 0 '+(4+s*2)+'px '+s+'px '+c[1];
+    p.style.left = rnd(0,100)+'%';
+    p.style.top = rnd(0,100)+'%';
+    p.style.animationDuration = rnd(6,13)+'s, '+rnd(2,5)+'s';
+    p.style.animationDelay = (-rnd(0,10))+'s, '+(-rnd(0,4))+'s';
+    frag.appendChild(p);
+  }
+  field.appendChild(frag);
+}
+
 function renderWaveform(){
   // Repurposed: renders the "Offers in flight" panel in the hero.
   const el = document.getElementById('offers-panel');
