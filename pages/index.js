@@ -31,7 +31,6 @@ const BODY_HTML = `
 <div id="app" style="display:none;">
 
   <header class="hero">
-    <div class="hero-particles" id="hero-particles" aria-hidden="true"></div>
     <div class="container hero-grid">
       <div class="hero-left">
         <p class="eyebrow">VerbaFlo.AI · Talent Acquisition</p>
