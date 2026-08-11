@@ -1889,6 +1889,7 @@ function renderKPIs(){
   // Count-up animation — only the first time the KPIs render this session.
   if (!window.__kpiCountedUp){
     window.__kpiCountedUp = true;
+    window.__kpiPrev = { open:k.open, onhold:k.onHold, submitted:k.submitted, interviewing:k.interviewing, offers:k.offers, attention:k.attention };
     const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!reduce){
       grid.querySelectorAll('.kpi-num').forEach(el => {
@@ -1906,6 +1907,31 @@ function renderKPIs(){
         requestAnimationFrame(step);
       });
     }
+  } else {
+    // Subsequent renders: smoothly roll any number that changed to its new value.
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const now = { open:k.open, onhold:k.onHold, submitted:k.submitted, interviewing:k.interviewing, offers:k.offers, attention:k.attention };
+    const prev = window.__kpiPrev || now;
+    const map = { open:'open', onhold:'onhold', submitted:'submitted', interviewing:'interviewing', offers:'offers', attention:'attention' };
+    if (!reduce){
+      Object.keys(map).forEach(key => {
+        const from = prev[key], to = now[key];
+        if (from === to) return;
+        const card = grid.querySelector(`.kpi-card[data-kpi="${key}"] .kpi-num`);
+        if (!card) return;
+        const dur = 500, start = performance.now();
+        card.classList.add('rolling');
+        function step(t){
+          const p = Math.min(1, (t - start) / dur);
+          const eased = 1 - Math.pow(1 - p, 3);
+          card.textContent = Math.round(from + (to - from) * eased).toString();
+          if (p < 1) requestAnimationFrame(step);
+          else { card.textContent = to.toString(); card.classList.remove('rolling'); }
+        }
+        requestAnimationFrame(step);
+      });
+    }
+    window.__kpiPrev = now;
   }
 }
 
@@ -2494,6 +2520,35 @@ function updateStatusView(role){
 
 // ===================== Event handling =====================
 function bindStaticEvents(){
+  // Cursor spotlight: cards illuminate softly where the cursor is.
+  (function initSpotlight(){
+    const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if (reduce) return;
+    const sel = '.kpi-card, .role-group, .narrative-card, .offers-panel';
+    let ticking = false, lastE = null;
+    function apply(){
+      ticking = false;
+      if (!lastE) return;
+      const el = lastE.target.closest ? lastE.target.closest(sel) : null;
+      // update the card under the cursor
+      if (el){
+        const r = el.getBoundingClientRect();
+        el.style.setProperty('--mx', ((lastE.clientX - r.left) / r.width * 100) + '%');
+        el.style.setProperty('--my', ((lastE.clientY - r.top) / r.height * 100) + '%');
+        el.classList.add('spot');
+      }
+    }
+    document.addEventListener('mousemove', (e) => {
+      lastE = e;
+      if (!ticking){ ticking = true; requestAnimationFrame(apply); }
+    }, { passive: true });
+    // fade the glow out when leaving a card
+    document.addEventListener('mouseout', (e) => {
+      const el = e.target.closest ? e.target.closest(sel) : null;
+      if (el && !el.contains(e.relatedTarget)) el.classList.remove('spot');
+    }, { passive: true });
+  })();
+
   document.getElementById('mode-switch').addEventListener('click', () => {
     state.mode = state.mode === 'view' ? 'edit' : 'view';
     document.getElementById('app').classList.toggle('mode-edit', state.mode === 'edit');
