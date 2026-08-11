@@ -132,17 +132,6 @@
     position:relative;
   }
   .hero .container{position:relative;z-index:1;}
-
-  /* Floating particle field — eye-catching glowing orbs drifting in the header */
-  .hero-particles{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
-  .hero-particles .hp-bokeh{position:absolute;border-radius:50%;filter:blur(14px);mix-blend-mode:screen;opacity:.5;animation:hpRise linear infinite;}
-  .hero-particles .hp-spark{position:absolute;border-radius:50%;animation:hpRise linear infinite, hpTwinkle ease-in-out infinite;}
-  @keyframes hpRise{0%{transform:translateY(34px);}100%{transform:translateY(-64px);}}
-  @keyframes hpTwinkle{0%,100%{opacity:.35;}50%{opacity:1;}}
-  @media (prefers-reduced-motion: reduce){
-    .hero-particles .hp-bokeh,.hero-particles .hp-spark{animation:none;}
-    .hero-particles .hp-spark{opacity:.7;}
-  }
   .hero-grid{
     display:grid;grid-template-columns:1fr auto;gap:32px;align-items:start;
     padding-bottom:30px;
