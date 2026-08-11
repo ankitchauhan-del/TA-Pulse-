@@ -31,6 +31,7 @@ const BODY_HTML = `
 <div id="app" style="display:none;">
 
   <header class="hero">
+    <div class="hero-particles" id="hero-particles" aria-hidden="true"></div>
     <div class="container hero-grid">
       <div class="hero-left">
         <p class="eyebrow">VerbaFlo.AI · Talent Acquisition</p>
@@ -45,14 +46,6 @@ const BODY_HTML = `
             <strong class="v-field" id="prepared-by-view">—</strong>
           </span>
           <span class="meta-item" id="last-updated-wrap">Updated <strong id="last-updated-view">—</strong></span>
-        </div>
-      </div>
-      <div class="hero-mark" aria-hidden="true">
-        <div class="pulse-rings">
-          <span class="pr-ring"></span>
-          <span class="pr-ring"></span>
-          <span class="pr-ring"></span>
-          <span class="pr-core"></span>
         </div>
       </div>
       <div class="offers-panel" id="offers-panel"></div>
