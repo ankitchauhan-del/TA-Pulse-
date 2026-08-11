@@ -132,34 +132,23 @@
     position:relative;
   }
   .hero .container{position:relative;z-index:1;}
+
+  /* Floating particle field — eye-catching glowing orbs drifting in the header */
+  .hero-particles{position:absolute;inset:0;z-index:0;overflow:hidden;pointer-events:none;}
+  .hero-particles .hp-bokeh{position:absolute;border-radius:50%;filter:blur(14px);mix-blend-mode:screen;opacity:.5;animation:hpRise linear infinite;}
+  .hero-particles .hp-spark{position:absolute;border-radius:50%;animation:hpRise linear infinite, hpTwinkle ease-in-out infinite;}
+  @keyframes hpRise{0%{transform:translateY(34px);}100%{transform:translateY(-64px);}}
+  @keyframes hpTwinkle{0%,100%{opacity:.35;}50%{opacity:1;}}
+  @media (prefers-reduced-motion: reduce){
+    .hero-particles .hp-bokeh,.hero-particles .hp-spark{animation:none;}
+    .hero-particles .hp-spark{opacity:.7;}
+  }
   .hero-grid{
-    display:grid;grid-template-columns:1fr auto auto;gap:32px;align-items:center;
+    display:grid;grid-template-columns:1fr auto;gap:32px;align-items:start;
     padding-bottom:30px;
   }
   .hero-left{min-width:0;align-self:start;}
 
-  /* Concentric pulse-ring brand mark */
-  .hero-mark{display:flex;align-items:center;justify-content:center;width:96px;height:96px;flex-shrink:0;align-self:center;}
-  .pulse-rings{position:relative;width:72px;height:72px;}
-  .pulse-rings .pr-core{
-    position:absolute;top:50%;left:50%;width:12px;height:12px;margin:-6px 0 0 -6px;border-radius:50%;
-    background:radial-gradient(circle,#fff,var(--signal-bright));
-    box-shadow:0 0 12px 2px rgba(155,140,255,0.8);
-    animation:prCorePulse 3s ease-in-out infinite;
-  }
-  @keyframes prCorePulse{0%,100%{transform:scale(1);}50%{transform:scale(1.25);}}
-  .pulse-rings .pr-ring{
-    position:absolute;top:50%;left:50%;border-radius:50%;border:1.5px solid var(--signal);
-    transform:translate(-50%,-50%);opacity:0;animation:prPing 3s ease-out infinite;
-  }
-  .pulse-rings .pr-ring:nth-child(2){animation-delay:1s;border-color:var(--cyan, #5CC6FF);}
-  .pulse-rings .pr-ring:nth-child(3){animation-delay:2s;border-color:var(--signal-bright);}
-  @keyframes prPing{0%{width:12px;height:12px;opacity:.85;}100%{width:72px;height:72px;opacity:0;}}
-  @media (prefers-reduced-motion: reduce){
-    .pulse-rings .pr-ring{animation:none;opacity:.3;width:48px;height:48px;}
-    .pulse-rings .pr-core{animation:none;}
-  }
-  @media (max-width: 860px){ .hero-mark{display:none;} }
   .eyebrow{
     font-family:var(--font-mono);
     font-size:11.5px;
