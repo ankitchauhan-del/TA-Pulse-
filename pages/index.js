@@ -47,6 +47,14 @@ const BODY_HTML = `
           <span class="meta-item" id="last-updated-wrap">Updated <strong id="last-updated-view">—</strong></span>
         </div>
       </div>
+      <div class="hero-mark" aria-hidden="true">
+        <div class="pulse-rings">
+          <span class="pr-ring"></span>
+          <span class="pr-ring"></span>
+          <span class="pr-ring"></span>
+          <span class="pr-core"></span>
+        </div>
+      </div>
       <div class="offers-panel" id="offers-panel"></div>
     </div>
   </header>
