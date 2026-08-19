@@ -2004,48 +2004,65 @@ function clearAllFilters(){
 
 // ===================== Waveform =====================
 function renderWaveform(){
-  // Repurposed: renders the "Offers in flight" panel in the hero.
+  // Renders the hero panel with two tabs: "Offers in flight" and "Final round".
   const el = document.getElementById('offers-panel');
   if (!el) return;
   const roles = state.roles || [];
   const offerRoles = roles.filter(r => r.status === 'Offer stage');
+  const finalRoles = roles.filter(r => (Number(r.finalRoundCount) || 0) > 0);
 
-  if (!offerRoles.length){
-    el.innerHTML = `<div class="offers-head"><span class="gh-dot"></span>Offers in flight · 0</div>`
-      + `<div class="offers-empty">No live offers right now.</div>`;
-    return;
-  }
+  const activeTab = window.__panelTab === 'final' ? 'final' : 'offers';
 
-  const rows = offerRoles.map(r => {
-    let cand = null, signed = false;
+  // ---- Build Offers rows ----
+  const offersBody = (() => {
+    if (!offerRoles.length) return `<div class="offers-empty">No live offers right now.</div>`;
+    return offerRoles.map(r => {
+      let cand = null, signed = false;
+      if (r.offerCandidate && String(r.offerCandidate).trim()){
+        cand = String(r.offerCandidate).trim();
+        signed = !!r.offerSigned;
+      } else {
+        const roster = Array.isArray(r.roster) ? r.roster : [];
+        const signedC = roster.find(c => c && c.offer && /sign/i.test(String(c.stage||'')));
+        const offerC = roster.find(c => c && c.offer);
+        if (signedC){ cand = signedC.name; signed = true; }
+        else if (offerC){ cand = offerC.name; signed = false; }
+      }
+      const candLine = cand ? `<span class="ocand">${escapeHtml(cand)}</span>` : `<span class="ocand ocand-muted">Candidate TBD</span>`;
+      const joinDate = r.joiningDate && String(r.joiningDate).trim()
+        ? `<span class="ojoin">Joins ${escapeHtml(String(r.joiningDate).trim())}</span>` : '';
+      const badge = signed ? `<span class="obadge signed">Signed</span>` : `<span class="obadge">Offer out</span>`;
+      return `<div class="orow"><div class="oinfo"><span class="oname">${escapeHtml(r.title)}</span>${candLine}${joinDate}</div>${badge}</div>`;
+    }).join('');
+  })();
 
-    // Priority 1: the dedicated fields you fill in the role's edit view.
-    if (r.offerCandidate && String(r.offerCandidate).trim()){
-      cand = String(r.offerCandidate).trim();
-      signed = !!r.offerSigned;
-    } else {
-      // Priority 2 (fallback): infer from the roster snapshot if it exists.
-      const roster = Array.isArray(r.roster) ? r.roster : [];
-      const signedC = roster.find(c => c && c.offer && /sign/i.test(String(c.stage||'')));
-      const offerC = roster.find(c => c && c.offer);
-      if (signedC){ cand = signedC.name; signed = true; }
-      else if (offerC){ cand = offerC.name; signed = false; }
-    }
+  // ---- Build Final round rows ----
+  const finalBody = (() => {
+    if (!finalRoles.length) return `<div class="offers-empty">No one in final round right now.</div>`;
+    return finalRoles.map(r => {
+      const n = Number(r.finalRoundCount) || 0;
+      const cand = r.finalRoundCandidate && String(r.finalRoundCandidate).trim() ? String(r.finalRoundCandidate).trim() : '';
+      const candLine = cand ? `<span class="ocand">${escapeHtml(cand)}</span>` : `<span class="ocand ocand-muted">${n} in final round</span>`;
+      const badge = `<span class="obadge final">${n} final</span>`;
+      return `<div class="orow"><div class="oinfo"><span class="oname">${escapeHtml(r.title)}</span>${candLine}</div>${badge}</div>`;
+    }).join('');
+  })();
 
-    const candLine = cand ? `<span class="ocand">${escapeHtml(cand)}</span>` : `<span class="ocand ocand-muted">Candidate TBD</span>`;
-    const joinDate = r.joiningDate && String(r.joiningDate).trim()
-      ? `<span class="ojoin">Joins ${escapeHtml(String(r.joiningDate).trim())}</span>`
-      : '';
-    const badge = signed
-      ? `<span class="obadge signed">Signed</span>`
-      : `<span class="obadge">Offer out</span>`;
-    return `<div class="orow">
-      <div class="oinfo"><span class="oname">${escapeHtml(r.title)}</span>${candLine}${joinDate}</div>
-      ${badge}
-    </div>`;
-  }).join('');
+  el.innerHTML = `
+    <div class="panel-tabs" role="tablist">
+      <button class="panel-tab ${activeTab==='offers'?'is-active':''}" data-tab="offers" role="tab">Offers <span class="pt-count">· ${offerRoles.length}</span></button>
+      <button class="panel-tab ${activeTab==='final'?'is-active':''}" data-tab="final" role="tab">Final round <span class="pt-count">· ${finalRoles.length}</span></button>
+    </div>
+    <div class="panel-body">${activeTab==='offers' ? offersBody : finalBody}</div>
+  `;
 
-  el.innerHTML = `<div class="offers-head"><span class="gh-dot"></span>Offers in flight · ${offerRoles.length}</div>${rows}`;
+  // wire the tabs (rebind each render; cheap)
+  el.querySelectorAll('.panel-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.__panelTab = btn.getAttribute('data-tab');
+      renderWaveform();
+    });
+  });
 }
 
 // ===================== Narrative =====================
@@ -2411,6 +2428,8 @@ function roleGroupHTML(r){
         <div class="field-edit-item"><label>Submitted</label><input type="number" class="num-edit" min="0" data-field="candidatesShared" data-id="${r.id}" value="${submitted}"></div>
         <div class="field-edit-item"><label>R1 count</label><input type="number" class="num-edit" min="0" data-field="r1Count" data-id="${r.id}" value="${r1}"></div>
         <div class="field-edit-item"><label>R2 count</label><input type="number" class="num-edit" min="0" data-field="r2Count" data-id="${r.id}" value="${r2}"></div>
+        <div class="field-edit-item"><label>Final round count <span class="field-hint">(shows in “Final round”)</span></label><input type="number" class="num-edit" min="0" data-field="finalRoundCount" data-id="${r.id}" value="${r.finalRoundCount ?? 0}"></div>
+        <div class="field-edit-item"><label>Final round candidate(s) <span class="field-hint">(shows in “Final round”)</span></label><input type="text" class="date-edit" data-field="finalRoundCandidate" data-id="${r.id}" value="${escapeHtml(r.finalRoundCandidate||'')}" placeholder="Name(s) in final round"></div>
         <div class="field-edit-item"><label>Target offer date</label><input type="text" class="date-edit" data-field="targetOfferDate" data-id="${r.id}" value="${escapeHtml(r.targetOfferDate||'')}" placeholder="e.g. 15th Aug 2026"></div>
         <div class="field-edit-item"><label>Offer candidate <span class="field-hint">(shows in “Offers in flight”)</span></label><input type="text" class="date-edit" data-field="offerCandidate" data-id="${r.id}" value="${escapeHtml(r.offerCandidate||'')}" placeholder="Name of candidate offered"></div>
         <div class="field-edit-item"><label>Joining date <span class="field-hint">(shows in “Offers in flight”)</span></label><input type="text" class="date-edit" data-field="joiningDate" data-id="${r.id}" value="${escapeHtml(r.joiningDate||'')}" placeholder="e.g. 1st Sep 2026"></div>
@@ -2771,6 +2790,12 @@ function handleRoleListInput(e){
   } else if (field === 'sheetLink'){
     role.sourceSheets = makeSheetEntry(el.value, role.title);
     updateSheetLinkViews(role);
+  } else if (field === 'finalRoundCount'){
+    role.finalRoundCount = Number(el.value) || 0;
+    renderWaveform(); // refreshes the panel (Final round tab)
+  } else if (field === 'finalRoundCandidate'){
+    role.finalRoundCandidate = el.value;
+    renderWaveform();
   } else if (field === 'offerCandidate'){
     role.offerCandidate = el.value;
     renderWaveform(); // refreshes the Offers in flight panel
