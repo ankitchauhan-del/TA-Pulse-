@@ -2043,7 +2043,7 @@ function renderWaveform(){
       const n = Number(r.finalRoundCount) || 0;
       const cand = r.finalRoundCandidate && String(r.finalRoundCandidate).trim() ? String(r.finalRoundCandidate).trim() : '';
       const candLine = cand ? `<span class="ocand">${escapeHtml(cand)}</span>` : `<span class="ocand ocand-muted">${n} in final round</span>`;
-      const badge = `<span class="obadge final">${n} final</span>`;
+      const badge = `<span class="obadge final">Final</span>`;
       return `<div class="orow"><div class="oinfo"><span class="oname">${escapeHtml(r.title)}</span>${candLine}</div>${badge}</div>`;
     }).join('');
   })();
