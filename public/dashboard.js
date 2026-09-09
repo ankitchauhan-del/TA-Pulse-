@@ -1866,10 +1866,7 @@ function computeKPIs(){
   const submitted = roles.reduce((s,r) => s + (Number(r.candidatesShared)||0), 0);
   const interviewing = roles.reduce((s,r) => s + (Number(r.r1Count)||0) + (Number(r.r2Count)||0), 0);
   const attention = roles.filter(r => r.needsAttention || isOverdue(r)).length;
-  const offers = roles.reduce((s,r) => {
-    if (r.roster && r.roster.length) return s + r.roster.filter(c => c.offer).length;
-    return s + (r.status === 'Offer stage' ? 1 : 0);
-  }, 0);
+  const offers = roles.filter(r => r.status === 'Offer stage').length;
   return { open, onHold, submitted, interviewing, attention, offers };
 }
 
