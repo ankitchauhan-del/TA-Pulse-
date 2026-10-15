@@ -2362,6 +2362,19 @@ function sheetLinksRowHTML(r){
   </div>`;
 }
 
+function interviewPlanRowHTML(r){
+  const url = (r.interviewPlanUrl || '').trim();
+  if (!/^https?:\/\//i.test(url)) return '';
+  return `<div class="sheet-links-row interview-plan-row">
+    <span class="sheet-links-label">Interview plan</span>
+    <a class="sheet-pill" href="${encodeURI(url)}" target="_blank" rel="noopener">${pdfIconSvg()}View PDF</a>
+  </div>`;
+}
+
+function pdfIconSvg(){
+  return `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h6"/></svg>`;
+}
+
 function roleGroupHTML(r){
   const bd = pipelineBreakdown(r);
   const submitted = Number(r.candidatesShared)||0;
@@ -2418,6 +2431,7 @@ function roleGroupHTML(r){
       </div>
 
       ${sheetLinksRowHTML(r)}
+      ${interviewPlanRowHTML(r)}
 
       <div class="field-edit-row">
         <div class="field-edit-item"><label>Approved reqs</label><input type="number" class="num-edit" min="0" data-field="totalApprovedReqs" data-id="${r.id}" value="${r.totalApprovedReqs ?? 0}"></div>
@@ -2432,6 +2446,7 @@ function roleGroupHTML(r){
         <div class="field-edit-item"><label>Joining date <span class="field-hint">(shows in “Offers in flight”)</span></label><input type="text" class="date-edit" data-field="joiningDate" data-id="${r.id}" value="${escapeHtml(r.joiningDate||'')}" placeholder="e.g. 1st Sep 2026"></div>
         <div class="field-edit-item field-check"><label>Offer signed?</label><label class="check-wrap"><input type="checkbox" data-field="offerSigned" data-id="${r.id}" ${r.offerSigned?'checked':''}> <span>Signed &amp; accepted</span></label></div>
         <div class="field-edit-item" style="flex:1 1 100%;"><label>Google Sheet link</label><input type="text" class="date-edit" style="width:100%;" data-field="sheetLink" data-id="${r.id}" value="${escapeHtml((r.sourceSheets && r.sourceSheets[0] && r.sourceSheets[0].path) || '')}" placeholder="Paste a Google Sheet link (leave blank to remove)"></div>
+        <div class="field-edit-item" style="flex:1 1 100%;"><label>Interview plan (PDF link)</label><input type="text" class="date-edit" style="width:100%;" data-field="interviewPlanUrl" data-id="${r.id}" value="${escapeHtml(r.interviewPlanUrl || '')}" placeholder="Paste a link to the interview plan PDF (Drive, Dropbox, etc.)"></div>
       </div>
 
       <div class="donut-wrap">
@@ -2787,6 +2802,9 @@ function handleRoleListInput(e){
   } else if (field === 'sheetLink'){
     role.sourceSheets = makeSheetEntry(el.value, role.title);
     updateSheetLinkViews(role);
+  } else if (field === 'interviewPlanUrl'){
+    role.interviewPlanUrl = el.value.trim();
+    updateInterviewPlanView(role);
   } else if (field === 'finalRoundCount'){
     role.finalRoundCount = Number(el.value) || 0;
     renderWaveform(); // refreshes the panel (Final round tab)
@@ -2826,6 +2844,23 @@ function updateSheetLinkViews(role){
       const stats = detail.querySelector('.detail-stats-row');
       if (stats) stats.insertAdjacentHTML('afterend', newRowHtml);
     }
+  }
+}
+
+function updateInterviewPlanView(role){
+  const group = document.querySelector(`.role-group[data-id="${role.id}"]`);
+  if (!group) return;
+  const detail = group.querySelector('.role-detail');
+  if (!detail) return;
+  const oldRow = detail.querySelector('.interview-plan-row');
+  const newRowHtml = interviewPlanRowHTML(role);
+  if (oldRow){
+    if (newRowHtml){ oldRow.outerHTML = newRowHtml; }
+    else { oldRow.remove(); }
+  } else if (newRowHtml){
+    // place after the sheet links row if present, else after the stats row
+    const anchor = detail.querySelector('.sheet-links-row:not(.interview-plan-row)') || detail.querySelector('.detail-stats-row');
+    if (anchor) anchor.insertAdjacentHTML('afterend', newRowHtml);
   }
 }
 
